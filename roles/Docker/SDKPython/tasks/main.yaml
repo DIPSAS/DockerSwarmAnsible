@@ -1,0 +1,5 @@
+- name: Install docker sdk for python
+  pip:
+    name: docker
+    state: present
+  tags: dockersdkpython

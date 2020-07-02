@@ -1,0 +1,112 @@
+
+- name: Check if host is already manager
+  docker_swarm_info:
+  ignore_errors: yes
+  register: hostswarminfo
+
+- name: Init or join existing docker swarm
+  tags: dswarm
+  block:
+  - name: Get info on Docker Swarm
+    docker_swarm_info:
+      nodes: yes
+    ignore_errors: yes
+    register: swarminfo
+    delegate_to: "{{ item }}"
+    loop: "{{ query('inventory_hostnames', 'linuxDockerSwarmManager') }}"
+    when: 
+      - hostvars[item]['swarm_name'] == swarm_name
+
+  - name: Gather facts from relevant hosts
+    setup:
+    delegate_to: "{{ item }}"
+    delegate_facts: True
+    loop: "{{ query('inventory_hostnames', 'linuxDockerSwarmManager') }}"
+    when: 
+      - hostvars[item]['swarm_name'] == swarm_name
+      - hostvars[item]['ansible_default_ipv4'] is not defined
+
+  - name: Register filtered swarminfo results
+    set_fact: 
+      filtered_swarminfo: "{{ swarminfo.results | selectattr('skipped', 'undefined') | list }}"
+
+  - name: Get name of leader node
+    set_fact: 
+      manager_hostname: "{{ item.Hostname }}"
+    loop: "{{ filtered_swarminfo[0].nodes | default([]) }}"
+    when: item.ManagerStatus == 'Leader' | default (False)
+
+  - name: Get manager info
+    set_fact:
+      manager_exists: "{{ item.docker_swarm_manager }}"
+      manager_swarm_facts: "{{ item.swarm_facts }}"
+    loop: "{{ filtered_swarminfo |default([]) }}"
+    when: 
+      - item.item == manager_hostname | default(False)
+
+  - name: Debug manager exists
+    debug:
+      msg: manager exists - {{ manager_exists | default(False) }}, manager leader hostname - {{ manager_hostname | default('') }}
+
+# init new swarm if none exists
+  - name: Init a new swarm with default parameters
+    docker_swarm:
+      state: present
+    when: 
+      - not (manager_exists | default(False))
+      - isManager
+    tags: dswarm
+    
+# open firewall for manager
+  - name: Open firewalld for tcp/2377
+    firewalld:
+      port: "2377/tcp"
+      permanent: true
+      state: enabled
+    notify: Reload firewalld
+    when:
+      - isManager
+    tags: 
+      - dswarm
+
+# join existing swarm if one already exists
+  - name: Join existing swarm
+    block:
+    - name: Get manager IP address
+      set_fact:
+        manager_IP: "{{ hostvars[manager_hostname]['ansible_facts']['default_ipv4']['address'] }}"
+
+    - name: Debug manager IP
+      debug:
+       msg: manager ip address - {{ manager_IP }}
+
+    - name: Get manager join token if is manager
+      set_fact:
+        join_token: "{{ manager_swarm_facts.JoinTokens.Manager }}"
+      when: 
+        - isManager
+
+    - name: Get worker join token if is worker
+      set_fact:
+        join_token: "{{ manager_swarm_facts.JoinTokens.Worker }}"
+      when: not isManager  
+
+    - name: Add nodes
+      docker_swarm:
+        state: join
+        join_token: "{{ join_token }}"
+        remote_addrs: "[{{ manager_IP }}]"
+        advertise_addr: ansible_facts['default_ipv4']['address']
+    when:  
+      - manager_exists | default(False)
+      
+    
+  tags: dswarm   
+  when: 
+    - not hostswarminfo.docker_swarm_manager 
+
+
+
+
+
+

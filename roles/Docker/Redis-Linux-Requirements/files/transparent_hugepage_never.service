@@ -1,0 +1,9 @@
+[Unit]
+Description=Transparent hugepage never service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/transparent_hugepage_never.sh
+
+[Install]
+WantedBy=multi-user.target

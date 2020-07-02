@@ -1,0 +1,7 @@
+[linuxDockerSwarmManager]
+manager-hostname.domain.local swarm_name=test
+
+
+# by default, all managers are also workers. If you only need one machine, it should be a manager
+[linuxDockerSwarmWorker]
+worker-hostname.domain.local swarm_name=test

@@ -1,0 +1,23 @@
+- name: Linux Docker swarm manager playbook
+  hosts: linuxDockerSwarmManager
+  vars:
+    isManager: True 
+  roles:
+    - Docker/Linux
+    - Docker/Compose-Linux
+    - Docker/SDKPython
+    - Docker/Swarm
+    - { role: Docker/Redis-Linux-Requirements, when: prepare_for_redis|bool }
+  serial: 1
+
+- name: Linux Docker swarm worker playbook
+  hosts: linuxDockerSwarmWorker
+  roles:
+    - Docker/Linux
+    - Docker/Compose-Linux
+    - Docker/SDKPython
+    - Docker/Swarm
+    - { role: Docker/Redis-Linux-Requirements, when: prepare_for_redis|bool }
+
+
+

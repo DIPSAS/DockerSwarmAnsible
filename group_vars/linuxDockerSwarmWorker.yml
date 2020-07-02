@@ -1,0 +1,5 @@
+docker_compose_version: "1.24.1"
+el_docker_version: "19.03.2"
+ansible_user: root
+ansible_port: 22
+ansible_connection: ssh

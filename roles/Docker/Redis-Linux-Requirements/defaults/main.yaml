@@ -1,0 +1,2 @@
+prepare_for_redis: false
+vm_overcommit_memory: 1

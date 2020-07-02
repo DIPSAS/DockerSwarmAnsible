@@ -1,0 +1,25 @@
+- name: Set vm.overcommit_memory
+  command: /bin/bash -c "sysctl vm.overcommit_memory={{ vm_overcommit_memory }}"
+  tags: redis-prepare
+
+- name: "Copy transparent_hugepage_never.sh to {{ ansible_hostname }}"
+  copy:
+    src: transparent_hugepage_never.sh
+    dest: /usr/bin/transparent_hugepage_never.sh
+    mode: u+rwx
+  tags: redis-prepare
+
+- name: "Copy transparent_hugepage_never.service to {{ ansible_hostname }}"
+  copy:
+    src: transparent_hugepage_never.service
+    dest: /etc/systemd/system/transparent_hugepage_never.service
+    mode: a+rwx,u-x,g-wx,o-wx
+  tags: redis-prepare
+
+- name: Enable transparent_hugepage_never service
+  command: /bin/bash -c "systemctl enable transparent_hugepage_never"
+  tags: redis-prepare
+
+- name: Start transparent_hugepage_never service
+  command: /bin/bash -c "systemctl start transparent_hugepage_never"
+  tags: redis-prepare

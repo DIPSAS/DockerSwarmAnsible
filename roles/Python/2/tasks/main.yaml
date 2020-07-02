@@ -1,0 +1,13 @@
+- name: Install pip
+  yum:
+    name: python-pip
+    state: installed
+    enablerepo: epel
+  when: ansible_os_family != 'Windows'
+  tags:
+    - python
+
+- name: Upgrade pip
+  shell: python -m pip install --upgrade pip
+  tags:
+    - python

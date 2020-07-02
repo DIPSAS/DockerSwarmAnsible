@@ -1,0 +1,33 @@
+---
+# tasks file for docker-ce-ansible-role
+
+- name: Install docker-ce (RedHat OS family)
+  include_tasks: install-EL.yml
+  when: ansible_os_family == 'RedHat'
+  tags: docker
+
+- name: Install docker-ce (Ubuntu)
+  include_tasks: install-Ubuntu.yml
+  when: ansible_distribution == 'Ubuntu'
+  tags: docker
+
+- name: Enable Docker CE service on startup
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  tags: docker
+
+- name: Deploy Docker daemon.json.
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+  notify: Restart Docker CE service
+  tags: docker
+
+- name: Start
+  service:
+    name: docker
+    state: started 
+  tags: docker
